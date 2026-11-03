@@ -5,7 +5,6 @@ if not isServer() then return end
 
 local MAX_DISTANCE = 12        -- a player can only announce a sink near them
 local MIN_GAP_MS = 250         -- per player, so a client can't flood the others
-local MODES = { tap = true, fill = true, use = true, shower = true }
 local lastSeen = {}
 
 local function onClientCommand(module, command, player, args)
@@ -17,8 +16,7 @@ local function onClientCommand(module, command, player, args)
     local id = player:getOnlineID()
     if lastSeen[id] and now - lastSeen[id] < MIN_GAP_MS then return end
     lastSeen[id] = now
-    local mode = MODES[args.mode] and args.mode or "tap"
-    sendServerCommand("WaterPhysicality", "tap", { x = x, y = y, z = z, on = args.on and true or false, mode = mode })
+    sendServerCommand("WaterPhysicality", "tap", { x = x, y = y, z = z, on = args.on and true or false })
 end
 
 Events.OnClientCommand.Add(onClientCommand)

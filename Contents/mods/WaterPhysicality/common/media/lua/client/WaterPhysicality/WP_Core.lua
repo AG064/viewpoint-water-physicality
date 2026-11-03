@@ -3,13 +3,7 @@
 -- WP.fixtures. Cost: one throttled scan per second over a small radius, then arithmetic on the few
 -- fixtures in range. No per-frame allocation.
 
--- Take A Bath And Shower is optional: with it the tubs come from its fluid containers, with Lifestyle:
--- Hobbies they come from the bath and shower actions it runs.
-local TABAS_Iso
-do
-    local ok, mod = pcall(require, "TABAS_Iso")
-    if ok then TABAS_Iso = mod end
-end
+local TABAS_Iso = require("TABAS_Iso")
 local Data = require("WaterPhysicality/WP_Data")
 
 local WP = {}
@@ -44,41 +38,21 @@ end
 -- slot: its entry in WP_Data (the models were generated from the fixture's own 3D model).
 local profiles = {}
 
--- Vanilla bathroom fixtures, recognised by sprite and properties, for when neither bath mod owns them.
---   entry.lifestyle: Lifestyle: Hobbies is active. It adds no fluid to its tubs and showers and runs a
---                    timed action while one is in use, which WP_Water follows.
---   entry.vanilla:   nothing adds bathing. The fixture shows water and a stream while a vanilla water action
---                    (washing, filling a container, drinking) runs on it, like a sink.
-local function fixtureProfile(object, name, number)
-    if not name:find("fixtures_bathroom_01_", 1, true) then return false end
-    local lifestyle = LSUseTub ~= nil
-    local custom = propOf(object, "CustomName")
-    if custom == "Bath" and propOf(object, "GroupName") == "Large Deluxe" then
-        local slot = Data.tub[number]
-        if slot then return { kind = "bathtub", shower = false, slot = slot, lifestyle = lifestyle or nil, vanilla = not lifestyle or nil } end
-    elseif custom == "Shower" then
-        local slot = Data.shower[number]
-        if slot then return { kind = "shower", shower = true, slot = slot, lifestyle = lifestyle or nil, vanilla = not lifestyle or nil } end
-    end
-    return false
-end
-
 local function profileOf(object, name)
     local number = tonumber(name:match("_(%d+)$"))
     local profile = false
     if number then
-        if TABAS_Iso and TABAS_Iso.isBathObject(object) then
+        if TABAS_Iso.isBathObject(object) then
             local props = object:getProperties()
             local slot = not (props and props:has("IsGridExtensionTile")) and Data.tub[number] or nil
             if slot then profile = { kind = "bathtub", shower = TABAS_Iso.isShowerObject(object, true), slot = slot } end
-        elseif TABAS_Iso and TABAS_Iso.isShowerObject(object, false) then
+        elseif TABAS_Iso.isShowerObject(object, false) then
             local slot = Data.shower[number]
             if slot then profile = { kind = "shower", shower = true, slot = slot } end
         elseif propOf(object, "CustomName") == "Sink" and name:find("sinks_01", 1, true) then
             local slot = Data.sink[number]
             if slot then profile = { kind = "sink", shower = false, slot = slot } end
         end
-        if not profile then profile = fixtureProfile(object, name, number) end
     end
     profiles[name] = profile
     return profile
@@ -95,11 +69,7 @@ end
 
 local function updateTarget(entry, now)
     local object = entry.object
-    if entry.lifestyle then
-        return      -- WP_Water sets the target from the bath and shower actions
-    elseif entry.vanilla then
-        entry.hasWater = object:hasWater() and true or false   -- WP_Water shows it while a water action runs
-    elseif entry.kind == "bathtub" then
+    if entry.kind == "bathtub" then
         local tfc = TABAS_Iso.getTfcBaseOnBathObject(object)
         if tfc and tfc:hasFluid() then
             local ratio, amount = fluidOf(tfc)
@@ -136,8 +106,7 @@ function WP.scan()
                 local objects = square:getObjects()
                 for i = 1, objects:size() do
                     local object = objects:get(i - 1)
-                    local sprite = object:getSprite()
-                    local name = sprite and sprite:getName() or nil
+                    local name = TABAS_Iso.getObjectSpriteName(object)
                     if name then
                         if name:sub(1, 9) == "wp_water_" then
                             strays[#strays + 1] = object
@@ -150,8 +119,7 @@ function WP.scan()
                                 local entry = WP.fixtures[key]
                                 if not entry then
                                     entry = { object = object, square = square, kind = profile.kind, shower = profile.shower,
-                                              slot = profile.slot, lifestyle = profile.lifestyle, vanilla = profile.vanilla,
-                                              level = 0, target = 0 }
+                                              slot = profile.slot, level = 0, target = 0 }
                                     WP.fixtures[key] = entry
                                 end
                                 updateTarget(entry, now)

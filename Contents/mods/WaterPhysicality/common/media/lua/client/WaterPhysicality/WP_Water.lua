@@ -21,38 +21,30 @@ local PERIOD_MS = 100
 local WPW = {}
 WPW.overlays = {}       -- layer key -> { obj, sprite }
 WPW.lastRun = 0
-WPW.remote = {}         -- "x,y,z" of a fixture -> { mode, untilMs } for another player using it
-WPW.sentTap = nil       -- "x,y,z" of the fixture this player's use was last announced for
-WPW.sentMode = nil
+WPW.remoteTaps = {}     -- "x,y,z" of a sink -> time until which another player's tap is running
+WPW.sentTap = nil       -- "x,y,z" of the sink this player's tap was last announced for
 WPW.sentAt = 0
 
-local TAP_HEARTBEAT_MS = 1000    -- while using a fixture, tell the others this often
-local TAP_REMOTE_HOLD_MS = 1500  -- ...and show their use this long after the last message
-
--- What a player can announce: a sink tap, or (with Lifestyle: Hobbies) filling a tub, sitting in it, showering.
-local LS_HOLD_MS = { fill = 3000, use = 3000, shower = 700 }    -- how long a Lifestyle state shows after its last sign
+local TAP_HEARTBEAT_MS = 1000    -- while using a sink, tell the others this often
+local TAP_REMOTE_HOLD_MS = 1500  -- ...and show their tap this long after the last message
 
 local function tapKey(x, y, z) return x .. "," .. y .. "," .. z end
 
--- Tells the server (which relays it to every client) which fixture this player is using, or that they stopped
--- (mode nil).
-local function announce(square, mode, now)
+-- Tells the server (which relays it to every client) that this player's tap is running or stopped.
+local function announceTap(square, on, now)
     if not isClient() then return end
     local key = tapKey(square:getX(), square:getY(), square:getZ())
-    if mode then
-        if WPW.sentTap == key and WPW.sentMode == mode and now - WPW.sentAt < TAP_HEARTBEAT_MS then return end
-    elseif not WPW.sentTap then
-        return
-    end
-    WPW.sentTap, WPW.sentMode, WPW.sentAt = mode and key or nil, mode, now
+    if on and WPW.sentTap == key and now - WPW.sentAt < TAP_HEARTBEAT_MS then return end
+    if not on and not WPW.sentTap then return end
+    WPW.sentTap, WPW.sentAt = on and key or nil, now
     sendClientCommand(getPlayer(), "WaterPhysicality", "tap",
-        { x = square:getX(), y = square:getY(), z = square:getZ(), on = mode ~= nil, mode = mode })
+        { x = square:getX(), y = square:getY(), z = square:getZ(), on = on })
 end
 
 local function onServerCommand(module, command, args)
     if module ~= "WaterPhysicality" or command ~= "tap" or type(args) ~= "table" then return end
     local key = tapKey(args.x, args.y, args.z)
-    WPW.remote[key] = args.on and { mode = args.mode or "tap", untilMs = getTimestampMs() + TAP_REMOTE_HOLD_MS } or nil
+    WPW.remoteTaps[key] = args.on and (getTimestampMs() + TAP_REMOTE_HOLD_MS) or nil
 end
 Events.OnServerCommand.Add(onServerCommand)
 
@@ -83,28 +75,6 @@ local function usedFixture(player)
     return action.waterObject or action.sink
 end
 
--- Lifestyle: Hobbies runs one timed action per bath or shower; its fixture object tells which fixture.
-local LS_ACTIONS = {
-    LSPrepareBath = { "bathObject", "fill" },
-    LSUseTub = { "mainTubObj", "use" },
-    LSUseShower = { "showerObject", "shower" },
-}
-
--- The fixture object and mode ("fill", "use", "shower") of the Lifestyle action this player is running.
-local function lifestyleAction(player)
-    local queue = ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue(player)
-    local action = queue and queue.queue and queue.queue[1]
-    local spec = action and LS_ACTIONS[action.Type]
-    local obj = spec and action[spec[1]]
-    if not obj then return nil end
-    return obj, spec[2]
-end
-
-local function onSquare(obj, square)
-    local sq = obj:getSquare()
-    return sq ~= nil and sq:getX() == square:getX() and sq:getY() == square:getY() and sq:getZ() == square:getZ()
-end
-
 local function flowSprite(entry, frame, used, now)
     if not has(entry, "f") then return nil end
     if entry.kind == "bathtub" then
@@ -115,15 +85,8 @@ local function flowSprite(entry, frame, used, now)
     return nil
 end
 
-local function streamSprite(entry, frame, now)
+local function streamSprite(entry, frame)
     if not (entry.shower and has(entry, "s")) then return nil end
-    if entry.vanilla then
-        if entry.flowUntil and now < entry.flowUntil then return sprite(entry, "s", frame) end
-        return nil
-    elseif entry.lifestyle then
-        if entry.lsMode == "shower" and entry.lsUntil and now < entry.lsUntil then return sprite(entry, "s", frame) end
-        return nil
-    end
     local objects = entry.square:getObjects()
     for i = 1, objects:size() do
         if objects:get(i - 1):getName() == SHOWER_WATER then return sprite(entry, "s", frame) end
@@ -211,59 +174,22 @@ function WPW.sync(now)
     local frame = tick - FRAMES * math.floor(tick / FRAMES)     -- 0..FRAMES-1 (no % on large numbers)
     local player = getPlayer()
     local used = player and usedFixture(player) or nil
-    local lsObj, lsMode = nil, nil
-    if player and LSUseTub ~= nil then lsObj, lsMode = lifestyleAction(player) end
     local seen = {}
     for key, entry in pairs(WP.fixtures) do
-        local sqKey = tapKey(entry.square:getX(), entry.square:getY(), entry.square:getZ())
         if entry.kind == "sink" then
             -- a sink only holds water while its tap runs (someone drinks, washes or fills from it)
             local mine = entry.hasWater and used == entry.object
-            local theirs = WPW.remote[sqKey]
+            local sqKey = tapKey(entry.square:getX(), entry.square:getY(), entry.square:getZ())
+            local theirs = WPW.remoteTaps[sqKey]
             if mine then
-                announce(entry.square, "tap", now)
+                announceTap(entry.square, true, now)
                 entry.flowUntil = now + SINK_HOLD_MS
-            elseif theirs and now < theirs.untilMs and entry.hasWater then
+            elseif theirs and now < theirs and entry.hasWater then
                 entry.flowUntil = now + SINK_HOLD_MS
             elseif WPW.sentTap == sqKey then
-                announce(entry.square, nil, now)
+                announceTap(entry.square, false, now)
             end
             entry.target = (entry.flowUntil and now < entry.flowUntil) and SINK_LEVEL or 0
-        elseif entry.vanilla then
-            -- plain game: the fixture shows water while a vanilla water action runs on it, like a sink
-            local mine = entry.hasWater and used and onSquare(used, entry.square)
-            local theirs = WPW.remote[sqKey]
-            if mine then
-                announce(entry.square, "tap", now)
-                entry.flowUntil = now + SINK_HOLD_MS
-            elseif theirs and now < theirs.untilMs and entry.hasWater then
-                entry.flowUntil = now + SINK_HOLD_MS
-            elseif WPW.sentTap == sqKey then
-                announce(entry.square, nil, now)
-            end
-            if entry.kind == "bathtub" then
-                entry.target = (entry.flowUntil and now < entry.flowUntil) and SINK_LEVEL or 0
-            end
-        elseif entry.lifestyle then
-            -- Lifestyle: Hobbies tubs and showers hold water only while its bath / shower actions run,
-            -- this player's or another player's (announced through the server)
-            local mode
-            if lsObj and onSquare(lsObj, entry.square) then
-                mode = lsMode
-                announce(entry.square, mode, now)
-            else
-                local theirs = WPW.remote[sqKey]
-                if theirs and now < theirs.untilMs then mode = theirs.mode end
-                if WPW.sentTap == sqKey then announce(entry.square, nil, now) end
-            end
-            if mode and LS_HOLD_MS[mode] then
-                entry.lsMode, entry.lsUntil = mode, now + LS_HOLD_MS[mode]
-                if mode == "fill" then entry.flowUntil = now + 400 end
-            end
-            if entry.kind == "bathtub" then
-                local held = entry.lsUntil and now < entry.lsUntil and entry.lsMode or nil
-                entry.target = (held == "fill" or held == "use") and 1 or 0
-            end
         end
         local name = waterSprite(entry)
         if name then
@@ -277,7 +203,7 @@ function WPW.sync(now)
             seen[layerKey] = true
             ensureOverlay(layerKey, entry, WP.FLOW_NAME, name, true, now)
         end
-        name = streamSprite(entry, frame, now)
+        name = streamSprite(entry, frame)
         if name then
             local layerKey = key .. "|stream"
             seen[layerKey] = true
