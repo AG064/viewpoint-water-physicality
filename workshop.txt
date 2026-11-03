@@ -1,7 +1,7 @@
 version=1
 id=3827710289
 title=Viewpoint - Water Physicality
-description=Water in 3D for Take A Bath And Shower, drawn by Project Viewpoint.
+description=Water in 3D for sinks, bathtubs and showers, drawn by Project Viewpoint.
 description=
 description=[h2]What you get[/h2]
 description=[list]
@@ -21,7 +21,7 @@ description=[list]
 description=[*] Take A Bath And Shower [SP/MP] or Lifestyle: Hobbies, for full functionality: they add bathing, so tubs fill and drain and showers run. With both enabled, Take A Bath And Shower takes over bathing (it hides Lifestyle's own bath and shower menu options) and the water follows it.
 description=[*] Without either one the mod still works: sinks, tubs and showers show water and a stream while a normal water action (washing, filling a container, drinking) runs on them. Nothing fills up by itself, because the base game has no bathing.
 description=[/list]
-description=Recommended: "6277 3D models for Viewpoint" - the water is measured from the fixture models in that pack, so it fits them exactly.
+description=Recommended: "3D models for Viewpoint" (sour_kisel) - the water is measured from the fixture models in that pack, so it fits them exactly.
 description=
 description=[h2]Good to know[/h2]
 description=[list]

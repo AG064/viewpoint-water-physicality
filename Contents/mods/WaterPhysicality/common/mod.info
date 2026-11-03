@@ -1,6 +1,6 @@
 name=Water Physicality
 id=WaterPhysicality
-description=3D water for sinks, bathtubs and showers. Works best with Take A Bath And Shower or Lifestyle: Hobbies (either one, or both): filled and filling bathtubs and kitchen sinks get real water that rises and drains, and a running shower gets a stream. Without them, fixtures show water while a normal water action runs on them. Models are drawn by Project Viewpoint. Sink taps and Lifestyle baths are shared with other players through a small server relay, so the server needs the mod enabled in multiplayer.
+description=Water in 3D for sinks, bathtubs and showers. Works best with Take A Bath And Shower or Lifestyle: Hobbies (either one, or both): filled and filling bathtubs and kitchen sinks get real water that rises and drains, and a running shower gets a stream. Without them, fixtures show water while a normal water action runs on them. Models are drawn by Project Viewpoint. Sink taps and Lifestyle baths are shared with other players through a small server relay, so the server needs the mod enabled in multiplayer.
 poster=poster.png
 icon=icon.png
 author=E.Mi
