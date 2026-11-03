@@ -1,0 +1,4 @@
+newmtl water
+Kd 1 1 1
+d 0.75
+map_Kd bath_water.png
