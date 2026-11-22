@@ -13,7 +13,7 @@ Existing saves keep working with the Viewpoint version, with or without Viewpoin
 ### Requirements
 - 0.1.1 required Project Viewpoint, ZombieBuddy and Take A Bath And Shower. 2.0.0 requires nothing.
 - Project Viewpoint and ZombieBuddy are only needed for the 3D water (Viewpoint version).
-- Take A Bath And Shower is optional.
+- Take A Bath And Shower or Lifestyle: Hobbies are optional.
 
 ### New
 - Isometric water. 0.1.1 drew water only in Viewpoint's 3D view. Now sinks and tubs also show their water and tap stream in the isometric view, painted into the fixture's own art so it sorts and fades with the fixture.
