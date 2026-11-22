@@ -20,6 +20,7 @@ WP.DRAIN_RATE = 0.25     -- fraction per second while draining
 WP.LOW_LEVEL = 0.4       -- what a low-water container shows when its amount can't be read
 WP.FULL_LEVEL = 1.0
 WP.FLOW_HOLD_MS = 2500   -- a tub tap keeps running this long after the water last rose
+WP.KEEP_MS = 4000        -- a fixture that no scan sees is kept this long before it is dropped
 
 WP.WATER_NAME = "WP_Water"       -- names of the overlay objects this mod places
 WP.FLOW_NAME = "WP_Flow"
@@ -153,8 +154,13 @@ function WP.scan()
                                               slot = profile.slot, lifestyle = profile.lifestyle, vanilla = profile.vanilla,
                                               level = 0, target = 0 }
                                     WP.fixtures[key] = entry
+                                    updateTarget(entry, now)
+                                    entry.level = entry.target or 0     -- first seen: show the real level at once, don't fill up from empty
+                                else
+                                    entry.object, entry.square = object, square
+                                    updateTarget(entry, now)
                                 end
-                                updateTarget(entry, now)
+                                entry.lastSeen = now
                             end
                         end
                     end
@@ -162,9 +168,10 @@ function WP.scan()
             end
         end
     end
-    -- drop fixtures that left the scan area
-    for key in pairs(WP.fixtures) do
-        if not seen[key] then WP.fixtures[key] = nil end
+    -- drop fixtures that left the scan area; one missed scan (a hitch while unpausing, a chunk reload) must not
+    -- throw away a tub's level, so an entry survives a few seconds without being seen
+    for key, entry in pairs(WP.fixtures) do
+        if not seen[key] and now - (entry.lastSeen or 0) > WP.KEEP_MS then WP.fixtures[key] = nil end
     end
     WP.strays = strays
 end

@@ -52,4 +52,24 @@ return {
     [44] = { s=344 },
     [45] = { s=348 }
   },
+  -- Flat (2D) water for the base game's isometric view: a tub is two tiles, so the water on the far tile is its own
+  -- sprite. far[slot] = { dx, dy, first sprite number }, 4 fill steps from that number, drawn on the square at
+  -- (dx, dy) from the faucet half. Only used when no 3D renderer (Project Viewpoint) draws the models.
+  far = { [34] = {0, 1, 352}, [35] = {1, 0, 356}, [36] = {0, -1, 360}, [37] = {-1, 0,364} },
+  -- Take A Bath And Shower draws its own flat water in a tub, so there the tub water must be 3D only: these sprites
+  -- are bound to the same 3D water models but have blank flat art. alias[slot] = first sprite number (4 fill steps).
+  -- Flat water in the base game's isometric view is baked into the tub's own art (an overlay sprite on the tub's two
+  -- objects, so it fades and sorts with the tub). bake[slot] = first sprite number: 4 near-half steps, then 4 far-half steps.
+  -- farTile[slot] = number of the far half's fixtures_bathroom_01_ sprite.
+  bake = { [34] = 384, [35] = 392, [36] = 400, [37] = 408 },
+  farTile = { [34] = 24, [35] = 27, [36] = 53, [37] = 54 },
+  alias = { [34] = 368, [35] = 372, [36] = 376, [37] = 380 },
+  -- Sinks: sinkBake = first sprite number of the baked iso sprites (sink art with its water painted in, +slot);
+  -- (the 3D-only sink water sprites, blank flat art, 2 steps per slot, are numbered in WP_Water);
+  -- sinkLevel[slot] = how full that sink gets while its tap runs (default 0.5, step 2 of 4).
+  sinkBake = 416,
+  sinkLevel = {},
+  -- wp_flow sheet: the fixture art with the tap stream painted in. Sinks: slot * 4 + frame.
+  -- Tub faucet halves: flowTub + ((slot - 34) * 5 + fill step 0..4) * 4 + frame.
+  flowTub = 136,
 }

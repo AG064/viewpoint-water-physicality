@@ -10,11 +10,13 @@
 local WP = require("WaterPhysicality/WP_Core")
 
 local Data = require("WaterPhysicality/WP_Data")
+local Variant = require("WaterPhysicality/WP_Variant")   -- threeD: this is the Project Viewpoint variant
 
 local SHOWER_WATER = "ShowerWater"           -- the bath mod's running-shower object
 local SPRITE = "wp_water_%d"
+local FLOW_SPRITE = "wp_flow_%d"          -- fixture art with the tap stream painted in (second tile sheet)
 local FRAMES, FRAME_MS = 4, 90
-local SINK_LEVEL = 0.8                       -- how full a sink gets while its tap runs
+local SINK_LEVEL = 0.5                       -- how full a sink gets while its tap runs
 local SINK_HOLD_MS = 700                     -- the tap keeps showing this long after the action ends
 local PERIOD_MS = 100
 
@@ -56,6 +58,8 @@ local function onServerCommand(module, command, args)
 end
 Events.OnServerCommand.Add(onServerCommand)
 
+local function sinkLevel(entry) return Data.sinkLevel[entry.slot] or SINK_LEVEL end
+
 local function stepOf(level)
     if level <= 0.02 then return 0 end
     if level <= 0.25 then return 1 end
@@ -68,10 +72,28 @@ end
 local function sprite(entry, kind, k) return string.format(SPRITE, Data.slots[entry.slot][kind] + k) end
 local function has(entry, kind) return Data.slots[entry.slot][kind] ~= nil end
 
+-- Each sprite is both: Project Viewpoint draws the 3D model bound to it, and the base game's isometric view shows the
+-- flat art in media/texturepacks/wp_water.pack, rendered from the same models.
+-- A tub driven by Take A Bath And Shower already has that mod's own flat water, so its water sprites are the
+-- "alias" ones: the same 3D models, blank flat art.
+local function tabasDriven(entry)
+    return entry.kind == "bathtub" and not entry.lifestyle and not entry.vanilla
+end
+
+local bakeTub
 local function waterSprite(entry)
     if not has(entry, "w") then return nil end
     local step = stepOf(entry.level)
     if step == 0 then return nil end
+    -- the flat variant draws no overlay objects: iso water is baked into the fixtures' own art (see bakeTub / bakeSink)
+    if not Variant.threeD then return nil end
+    local alias = entry.kind == "bathtub" and Data.alias[entry.slot]
+    if alias then return string.format(SPRITE, alias + step - 1) end
+    if entry.kind == "sink" then
+        -- 2 water steps per sink (a sink never fills past step 2); the first 16 aliases reuse numbers 352..367
+        local n = entry.slot * 2 + math.min(step, 2) - 1
+        return string.format(SPRITE, n < 16 and 352 + n or 450 + n - 16)
+    end
     return sprite(entry, "w", step - 1)
 end
 
@@ -105,10 +127,30 @@ local function onSquare(obj, square)
     return sq ~= nil and sq:getX() == square:getX() and sq:getY() == square:getY() and sq:getZ() == square:getZ()
 end
 
+-- Is the player's current action working on something standing on this square (a tub they drink from, fill from...)?
+local function actionOnSquare(player, square, square2)
+    local queue = ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue(player)
+    local action = queue and queue.queue and queue.queue[1]
+    if not action or LS_ACTIONS[action.Type] then return false end
+    for _, value in pairs(action) do
+        if type(value) == "userdata" and instanceof(value, "IsoObject") and value ~= player
+            and (onSquare(value, square) or (square2 and onSquare(value, square2))) then return true end
+    end
+    return false
+end
+
+-- A bathtub is two tiles; actions can hold either half.
+local function farSquareOf(entry)
+    local far = entry.kind == "bathtub" and Data.far[entry.slot]
+    if not far then return nil end
+    return getCell():getGridSquare(entry.square:getX() + far[1], entry.square:getY() + far[2], entry.square:getZ())
+end
+
 local function flowSprite(entry, frame, used, now)
     if not has(entry, "f") then return nil end
     if entry.kind == "bathtub" then
         if entry.flowUntil and now < entry.flowUntil then return sprite(entry, "f", frame) end
+        if entry.tapUntil and now < entry.tapUntil then return sprite(entry, "f", frame) end
     elseif entry.kind == "sink" then
         if entry.flowUntil and now < entry.flowUntil then return sprite(entry, "f", frame) end
     end
@@ -184,7 +226,7 @@ local function ensureOverlay(layerKey, entry, name, spriteName, quiet, now)
     else
         obj = IsoObject.new(getCell(), entry.square, spriteName)
         obj:setName(name)
-        entry.square:AddSpecialObject(obj)
+        entry.square:AddTileObject(obj)
     end
     WPW.overlays[layerKey] = { obj = obj, sprite = spriteName, checked = now }
     print(string.format("[WaterPhysicality] %s overlay %s at %s", entry.kind, spriteName, layerKey))
@@ -206,11 +248,170 @@ local function logSummary(now)
         fixtures, table.concat(parts, " "), overlays))
 end
 
+-- Diagnostics: the first time each kind of action runs next to a tracked fixture without this mod recognising it
+-- as water use, log its type and the objects it holds. Helps when a mod adds its own wash or fill action.
+local seenActions, seenCount = {}, 0
+local function noteAction(player, used)
+    if used or seenCount >= 30 then return end
+    local queue = ISTimedActionQueue and ISTimedActionQueue.getTimedActionQueue(player)
+    local action = queue and queue.queue and queue.queue[1]
+    local kind = action and action.Type
+    if not kind or seenActions[kind] or LS_ACTIONS[kind] then return end
+    local near = false
+    local px, py = player:getX(), player:getY()
+    for _, entry in pairs(WP.fixtures) do
+        if math.abs(entry.square:getX() + 0.5 - px) < 3 and math.abs(entry.square:getY() + 0.5 - py) < 3 then near = true break end
+    end
+    if not near then return end
+    seenActions[kind] = true
+    seenCount = seenCount + 1
+    local held = {}
+    for key, value in pairs(action) do
+        if type(value) == "userdata" and instanceof(value, "IsoObject") then held[#held + 1] = tostring(key) end
+    end
+    print(string.format("[WaterPhysicality] action near a fixture: %s (holds objects: %s)", tostring(kind), table.concat(held, ",")))
+end
+
+-- Iso water: an overlay sprite (the tub's own art with the water painted in) on the tub's two objects.
+WPW.baked = {}          -- key -> { obj, name }
+local function overlayName(obj)
+    local ok, sp = pcall(function() return obj:getOverlaySprite() end)
+    if ok and sp then return sp:getName() end
+    return nil
+end
+local function ours(name) return name ~= nil and (name:sub(1, 9) == "wp_water_" or name:sub(1, 8) == "wp_flow_") end
+
+-- Another mod's overlay on the fixture (Lifestyle: Hobbies' bath steam, its dirt) is kept: our water takes the overlay
+-- and theirs is "lifted" on top of it as an attached sprite (the game draws attached sprites after the overlay).
+-- All of this is this client's own view: nothing is sent to the server (the tap stream changes the overlay ~11 times
+-- a second). Only a single-player save can keep it, so there the lifted name also goes in the fixture's mod data and a
+-- save made meanwhile is put right next time. In multiplayer the mod data is left alone: Lifestyle sends a tub's mod
+-- data to the server, and the server's copy replaces the client's.
+local LIFTED = "WaterPhysicalityLifted"
+local function isSteam(name) return name ~= nil and name:sub(1, 7) == "LS_Fog_" end
+local function detach(obj, name)
+    local list = obj:getAttachedAnimSprite()
+    if not list then return end
+    for i = list:size() - 1, 0, -1 do
+        local inst = list:get(i)
+        local sp = inst and inst:getParentSprite()
+        if sp and sp:getName() == name then obj:RemoveAttachedAnim(i) return end
+    end
+end
+local function lift(obj, name)
+    obj:addAttachedAnimSpriteByName(name)
+    if not isClient() then obj:getModData()[LIFTED] = name end
+    return name
+end
+-- name: what we lifted (nil: look in a single-player save). restore: put it back as the overlay (not bath steam: its
+-- bath has ended by the time our water goes)
+local function unlift(obj, name, restore)
+    if not isClient() and obj:hasModData() then
+        local md = obj:getModData()
+        name = name or md[LIFTED]
+        md[LIFTED] = nil
+    end
+    if not name then return end
+    detach(obj, name)
+    if restore and not isSteam(name) then obj:setOverlaySprite(name, false) end
+end
+
+local function setBaked(key, obj, name, seen)
+    local rec = WPW.baked[key]
+    if rec and rec.obj ~= obj then rec = nil WPW.baked[key] = nil end      -- the fixture was replaced
+    local cur = overlayName(obj)
+    if rec and cur ~= rec.name then
+        -- someone set the overlay since we did (Lifestyle starting or ending a bath, here or on the server): what we
+        -- lifted is stale
+        unlift(obj, rec.lifted, false)
+        rec = nil
+        WPW.baked[key] = nil
+    elseif not rec and ours(cur) then
+        -- left from an earlier session (saved with the map, or by an older version on a server): undo it, on the
+        -- server too
+        unlift(obj, nil, true)
+        if ours(overlayName(obj)) then obj:setOverlaySprite(nil, isClient()) end
+        cur = overlayName(obj)
+    end
+    if name then
+        seen[key] = true
+        if rec and rec.name == name then return end
+        local lifted = rec and rec.lifted or nil
+        if not rec and cur and not ours(cur) then
+            unlift(obj, nil, false)
+            lifted = lift(obj, cur)
+        end
+        obj:setOverlaySprite(name, false)
+        WPW.baked[key] = { obj = obj, name = name, lifted = lifted }
+    elseif rec then
+        WPW.baked[key] = nil
+        obj:setOverlaySprite(nil, false)
+        unlift(obj, rec.lifted, true)
+    end
+end
+
+-- Lifestyle remembers a tub's overlay when a bath starts and puts it back when it ends (and in multiplayer sends it to
+-- the server). If our water was showing it would remember our sprite: give it what our water covers instead.
+local function underlying(obj)
+    if not obj then return nil end
+    for _, rec in pairs(WPW.baked) do
+        -- not an earlier bath's steam: put back at the end of this bath, it would stay for good
+        if rec.obj == obj then return (not isSteam(rec.lifted)) and rec.lifted or nil end
+    end
+    return nil
+end
+local function patchLifestyle()
+    local specs = { { "LSPrepareBath", "bathObject", "bathBottomObj" }, { "LSUseTub", "mainTubObj", "subTubObj" } }
+    for _, spec in ipairs(specs) do
+        local class = _G[spec[1]]
+        if type(class) == "table" and type(class.new) == "function" and not class.waterPhysicalityPatched then
+            local original = class.new
+            class.new = function(...)
+                local o = original(...)
+                if type(o) == "table" then
+                    if ours(o.mainTubOverlay) then o.mainTubOverlay = underlying(o[spec[2]]) end
+                    if ours(o.subTubOverlay) then o.subTubOverlay = underlying(o[spec[3]]) end
+                end
+                return o
+            end
+            class.waterPhysicalityPatched = true
+        end
+    end
+end
+Events.OnGameStart.Add(patchLifestyle)
+local function objectNamed(square, spriteName)
+    local objects = square:getObjects()
+    for i = 1, objects:size() do
+        local obj = objects:get(i - 1)
+        local sp = obj:getSprite()
+        if sp and sp:getName() == spriteName then return obj end
+    end
+    return nil
+end
+-- flowFrame: the tap is running (0..FRAMES-1), so the faucet half shows the stream painted in too (wp_flow sheet).
+bakeTub = function(entry, key, step, seen, flowFrame)
+    local base = Data.bake[entry.slot]
+    local far = Data.far[entry.slot]
+    local near = nil
+    if flowFrame then
+        near = string.format(FLOW_SPRITE, Data.flowTub + ((entry.slot - 34) * 5 + step) * FRAMES + flowFrame)
+    elseif step > 0 then
+        near = string.format(SPRITE, base + step - 1)
+    end
+    setBaked(key .. "|bn", entry.object, near, seen)
+    local farSquare = getCell():getGridSquare(entry.square:getX() + far[1], entry.square:getY() + far[2], entry.square:getZ())
+    local farObj = farSquare and objectNamed(farSquare, "fixtures_bathroom_01_" .. Data.farTile[entry.slot])
+    if farObj then
+        setBaked(key .. "|bf", farObj, step > 0 and string.format(SPRITE, base + 4 + step - 1) or nil, seen)
+    end
+end
+
 function WPW.sync(now)
     local tick = math.floor(now / FRAME_MS)
     local frame = tick - FRAMES * math.floor(tick / FRAMES)     -- 0..FRAMES-1 (no % on large numbers)
     local player = getPlayer()
     local used = player and usedFixture(player) or nil
+    if player then noteAction(player, used) end
     local lsObj, lsMode = nil, nil
     if player and LSUseTub ~= nil then lsObj, lsMode = lifestyleAction(player) end
     local seen = {}
@@ -223,23 +424,23 @@ function WPW.sync(now)
             if mine then
                 announce(entry.square, "tap", now)
                 entry.flowUntil = now + SINK_HOLD_MS
-            elseif theirs and now < theirs.untilMs and entry.hasWater then
-                entry.flowUntil = now + SINK_HOLD_MS
-            elseif WPW.sentTap == sqKey then
-                announce(entry.square, nil, now)
+            else
+                if WPW.sentTap == sqKey then announce(entry.square, nil, now) end
+                if theirs and now < theirs.untilMs and entry.hasWater then entry.flowUntil = now + SINK_HOLD_MS end
             end
-            entry.target = (entry.flowUntil and now < entry.flowUntil) and SINK_LEVEL or 0
+            entry.target = (entry.flowUntil and now < entry.flowUntil) and sinkLevel(entry) or 0
         elseif entry.vanilla then
             -- plain game: the fixture shows water while a vanilla water action runs on it, like a sink
-            local mine = entry.hasWater and used and onSquare(used, entry.square)
+            local farSq = farSquareOf(entry)
+            local mine = (entry.hasWater and used and (onSquare(used, entry.square) or (farSq and onSquare(used, farSq))))
+                or (entry.kind == "bathtub" and player and actionOnSquare(player, entry.square, farSq))
             local theirs = WPW.remote[sqKey]
             if mine then
                 announce(entry.square, "tap", now)
                 entry.flowUntil = now + SINK_HOLD_MS
-            elseif theirs and now < theirs.untilMs and entry.hasWater then
-                entry.flowUntil = now + SINK_HOLD_MS
-            elseif WPW.sentTap == sqKey then
-                announce(entry.square, nil, now)
+            else
+                if WPW.sentTap == sqKey then announce(entry.square, nil, now) end
+                if theirs and now < theirs.untilMs and entry.hasWater then entry.flowUntil = now + SINK_HOLD_MS end
             end
             if entry.kind == "bathtub" then
                 entry.target = (entry.flowUntil and now < entry.flowUntil) and SINK_LEVEL or 0
@@ -247,22 +448,33 @@ function WPW.sync(now)
         elseif entry.lifestyle then
             -- Lifestyle: Hobbies tubs and showers hold water only while its bath / shower actions run,
             -- this player's or another player's (announced through the server)
+            -- A normal water action on the tub (drinking, washing, filling a bottle) runs its tap like in the plain game.
             local mode
+            local farSq = farSquareOf(entry)
             if lsObj and onSquare(lsObj, entry.square) then
                 mode = lsMode
+                announce(entry.square, mode, now)
+            elseif entry.kind == "bathtub" and player and actionOnSquare(player, entry.square, farSq) then
+                mode = "tap"
                 announce(entry.square, mode, now)
             else
                 local theirs = WPW.remote[sqKey]
                 if theirs and now < theirs.untilMs then mode = theirs.mode end
                 if WPW.sentTap == sqKey then announce(entry.square, nil, now) end
             end
-            if mode and LS_HOLD_MS[mode] then
+            if mode == "tap" then
+                entry.flowUntil = now + SINK_HOLD_MS
+            elseif mode and LS_HOLD_MS[mode] then
                 entry.lsMode, entry.lsUntil = mode, now + LS_HOLD_MS[mode]
                 if mode == "fill" then entry.flowUntil = now + 400 end
             end
             if entry.kind == "bathtub" then
                 local held = entry.lsUntil and now < entry.lsUntil and entry.lsMode or nil
-                entry.target = (held == "fill" or held == "use") and 1 or 0
+                if held == "fill" or held == "use" then
+                    entry.target = 1
+                else
+                    entry.target = (entry.flowUntil and now < entry.flowUntil) and SINK_LEVEL or 0
+                end
             end
         end
         local name = waterSprite(entry)
@@ -270,8 +482,26 @@ function WPW.sync(now)
             local layerKey = key .. "|water"
             seen[layerKey] = true
             ensureOverlay(layerKey, entry, WP.WATER_NAME, name, false, now)
+            -- flat (iso) water is baked into the tub's own art, see bakeTub
         end
-        name = flowSprite(entry, frame, used, now)
+        local flowing = flowSprite(entry, frame, used, now)
+        -- iso water and tap stream are painted into the fixture's own art (overlay sprite), so they are drawn and
+        -- sorted exactly with it
+        if entry.kind == "sink" then
+            local lit = stepOf(entry.level) == stepOf(sinkLevel(entry))
+            local bakedName = nil
+            if flowing then
+                bakedName = string.format(FLOW_SPRITE, entry.slot * FRAMES + frame)
+            elseif lit then
+                bakedName = string.format(SPRITE, Data.sinkBake + entry.slot)
+            end
+            setBaked(key .. "|bs", entry.object, bakedName, seen)
+        end
+        if entry.kind == "bathtub" and (entry.vanilla or entry.lifestyle) and Data.bake[entry.slot] then
+            bakeTub(entry, key, stepOf(entry.level), seen, flowing and frame or nil)
+        end
+        -- the separate stream object only carries the 3D model (its flat art is blank)
+        name = Variant.threeD and flowing or nil
         if name then
             local layerKey = key .. "|flow"
             seen[layerKey] = true
@@ -291,6 +521,9 @@ function WPW.sync(now)
             WPW.overlays[layerKey] = nil
             print("[WaterPhysicality] removed overlay " .. layerKey)
         end
+    end
+    for key, rec in pairs(WPW.baked) do
+        if not seen[key] then setBaked(key, rec.obj, nil, seen) end
     end
     -- overlays saved from an earlier session that no tracked fixture owns any more
     if #WP.strays > 0 then

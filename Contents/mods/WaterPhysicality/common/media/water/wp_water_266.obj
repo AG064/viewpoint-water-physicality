@@ -1,10 +1,10 @@
-# Water Physicality: sink 35 water step 2
+# Water Physicality: industrial sink water step 2
 mtllib water.mtl
 usemtl water
-v -0.4875 0.4725 0.8825
-v 0.4075 0.4725 0.8825
-v 0.4075 0.4175 0.8825
-v -0.4875 0.4175 0.8825
+v -0.5020 -0.0970 0.7900
+v 0.4220 -0.0970 0.7900
+v 0.4220 0.3850 0.7900
+v -0.5020 0.3850 0.7900
 vt 0 0
 vt 1 0
 vt 1 1

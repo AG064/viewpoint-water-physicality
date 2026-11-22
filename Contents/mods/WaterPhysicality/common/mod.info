@@ -1,12 +1,12 @@
-name=Water Physicality
+name=Water Physicality - Viewpoint
 id=WaterPhysicality
-description=Water in 3D for sinks, bathtubs and showers. Works best with Take A Bath And Shower or Lifestyle: Hobbies (either one, or both): filled and filling bathtubs and kitchen sinks get real water that rises and drains, and a running shower gets a stream. Without them, fixtures show water while a normal water action runs on them. Models are drawn by Project Viewpoint. Sink taps and Lifestyle baths are shared with other players through a small server relay, so the server needs the mod enabled in multiplayer.
+description=Water for sinks, bathtubs and showers. With Project Viewpoint (and ZombieBuddy) the water and tap streams are real 3D models; without it you get the same water painted into the base game's isometric view. Fixtures show water while you drink, wash or fill a container at them. Take A Bath And Shower and Lifestyle: Hobbies are optional and detected at runtime: tubs fill and drain with their baths and showers run. No required mods. In multiplayer the server needs the mod enabled. Use "Water Physicality - Flat" instead if you never play with Viewpoint: the two cannot be enabled together.
 poster=poster.png
 icon=icon.png
 author=E.Mi
 modversion=2.0.0
 versionMin=42.20.0
-require=\ZombieBuddy,\Viewpoint
+incompatible=\WaterPhysicalityFlat
 loadModAfter=Viewpoint,TakeABathAndShowerNew,LifestyleHobbies
 ZBVersionMin=2.3.0
 javaJarFile=media/java/client/WaterPhysicality.jar
