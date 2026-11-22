@@ -11,25 +11,23 @@ The Workshop item now holds two versions. They cannot be enabled together.
 Existing saves keep working with the Viewpoint version, with or without Viewpoint. Servers: use the Mod ID of the version you want.
 
 ### Requirements
-- No required mods any more.
+- 0.1.1 required Project Viewpoint, ZombieBuddy and Take A Bath And Shower. 2.0.0 requires nothing.
 - Project Viewpoint and ZombieBuddy are only needed for the 3D water (Viewpoint version).
-- Take A Bath And Shower is now optional.
+- Take A Bath And Shower is optional.
 
 ### New
-- Isometric water for the base game view: sinks and tubs show water and their tap stream painted into the fixture's own art, so it sorts and fades with the fixture and never spills over the rim or shows through walls and mirrors.
+- Isometric water. 0.1.1 drew water only in Viewpoint's 3D view. Now sinks and tubs also show their water and tap stream in the isometric view, painted into the fixture's own art so it sorts and fades with the fixture.
 - Lifestyle: Hobbies support. Tub water rises while the tub fills, stays while you bathe and drains afterwards, with Lifestyle's steam and bubbles drawn on top. The shower spray runs while you shower. Other players see it too.
-- Works without any bath mod: sinks, tubs and showers show water and a stream while a normal water action (drinking, washing, filling a container) runs on them.
-- Drinking or washing at a tub runs its tap.
-- Drinking fountains get an arcing jet from the bubbler.
+- Works without any bath mod: sinks, tubs and showers show water and a stream while a normal water action (drinking, washing, filling a container) runs on them. Drinking or washing at a tub runs its tap.
 - Take A Bath And Shower and Lifestyle: Hobbies are detected at runtime. With both enabled, Take A Bath And Shower takes over bathing.
+- Drinking fountains: the stream is now an arcing jet from the bubbler.
 
-### Fixed
-- Sink tap streams start at each faucet's real spout. Before, several sinks had a stream floating under the arc of the faucet or starting too low.
-- Large industrial sinks: the stream comes from the faucet spout instead of the sprayer post, and reaches the water.
-- The beige bathroom sink (two of its four rotations) and one square kitchen sink: the water no longer sits above the rim.
-- Double kitchen sink: the 3D water sat too low to be seen.
-- Several sinks: the water surface no longer pokes through the outer wall as a thin line.
-- Multiplayer: "someone is using this fixture" now goes only to players nearby, not the whole server, and is no longer echoed back to the player who sent it (that kept their tap running for a moment after they stopped).
+### Improved
+- Sink water and tap streams are re-fitted to each sink model. Streams now start at the faucet's spout; on several sinks they were up to 6 cm off.
+- Large industrial sinks: the water sat about 20 cm above the basin and the stream came from the wrong spot. Both now fit the sink.
+- A few sinks (some of their rotations) had water 3 to 5 cm too high. It now sits in the basin.
+- The water surface no longer pokes through the outer wall of several sinks.
+- Multiplayer: the tap relay now tells only players nearby instead of everyone on the server, and no longer echoes back to the player using the tap (that kept their own stream running a moment after they stopped).
 
 ## 0.1.1
 - Multiplayer: sink taps are shared. When a player uses a sink, everyone nearby sees the tap stream. The server needs the mod enabled for this.
