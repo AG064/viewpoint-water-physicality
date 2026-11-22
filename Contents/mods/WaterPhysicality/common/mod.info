@@ -1,6 +1,6 @@
 name=Water Physicality - Viewpoint (3D + isometric)
 id=WaterPhysicality
-description=Water for sinks, bathtubs and showers. This version draws both: real 3D water and tap streams in Project Viewpoint's 3D view (with ZombieBuddy), and the same water painted into the isometric view, with or without Viewpoint. Fixtures show water while you drink, wash or fill a container at them. Take A Bath And Shower and Lifestyle: Hobbies are optional and detected at runtime: tubs fill and drain with their baths and showers run. No required mods. In multiplayer the server needs the mod enabled. Use "Water Physicality - Flat" instead if you never play with Viewpoint: the two cannot be enabled together.
+description=Water for sinks, bathtubs and showers. This version draws both: real 3D water and tap streams in Project Viewpoint's 3D view (with ZombieBuddy), and the same water painted into the isometric view, with or without Viewpoint. Fixtures show water while you drink, wash or fill a container at them. Take A Bath And Shower and Lifestyle: Hobbies are optional and detected at runtime: tubs fill and drain with their baths and showers run. No required mods. In multiplayer the server needs the mod enabled. Use "Water Physicality - Flat" instead if you never play with Viewpoint: the two cannot be enabled together. Source, changelog and bug reports: github.com/AG064/viewpoint-water-physicality
 poster=poster.png
 icon=icon.png
 author=E.Mi

@@ -25,8 +25,11 @@ Existing saves keep working with the Viewpoint version, with or without Viewpoin
 ### Improved
 - Sink water and tap streams are re-fitted to each sink model. Streams now start at the faucet's spout; on several sinks they were up to 6 cm off.
 - Large industrial sinks: the water sat about 20 cm above the basin and the stream came from the wrong spot. Both now fit the sink.
-- A few sinks (some of their rotations) had water 3 to 5 cm too high. It now sits in the basin.
+- Sinks no longer fill to the brim. In 0.1.1 a sink in use filled to 80%, and on about a dozen sinks (among them the double kitchen sink, the beige bathroom sink and a drinking fountain) that put the water above the rim. A sink in use now fills halfway, inside the basin.
 - The water surface no longer pokes through the outer wall of several sinks.
+- A filled tub no longer refills from empty every time you come near it or load a save next to it: it shows its real level at once.
+- A brief hitch or chunk reload no longer drains a tub's water and refills it.
+- Multiplayer: after the server resent a chunk, the mod kept using the old copy of its fixtures, so sinks there could stop showing their tap (and tubs stop following their level) until you walked away and back.
 - Multiplayer: the tap relay now tells only players nearby instead of everyone on the server, and no longer echoes back to the player using the tap (that kept their own stream running a moment after they stopped).
 
 ## 0.1.1

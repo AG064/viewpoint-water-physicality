@@ -47,6 +47,12 @@ description=[*] Tub variants added by Take A Bath And Shower use the standard tu
 description=[*] Light on performance: one scan per second for fixtures near you, and a small update ten times a second for the few in range. Nothing is drawn by Lua.
 description=[/list]
 description=
-description=Source and full changelog: [url=https://github.com/AG064/viewpoint-water-physicality]github.com/AG064/viewpoint-water-physicality[/url]
+description=[h2]GitHub: source, changelog and bug reports[/h2]
+description=The source is on GitHub: [url=https://github.com/AG064/viewpoint-water-physicality]github.com/AG064/viewpoint-water-physicality[/url]
+description=[list]
+description=[*] Full changelog of every version.
+description=[*] A zip with both versions, for installing without the Workshop.
+description=[*] Found a bug? Report it in the comments here or as a [url=https://github.com/AG064/viewpoint-water-physicality/issues]GitHub issue[/url].
+description=[/list]
 tags=Build 42;Realistic;Textures
 visibility=public
