@@ -1,6 +1,6 @@
 name=Water Physicality - Flat
 id=WaterPhysicalityFlat
-description=Water for sinks, bathtubs and showers in the base game's isometric view, painted into the fixtures' own art. No Project Viewpoint or ZombieBuddy needed, and no required mods. Fixtures show water while you drink, wash or fill a container at them. Take A Bath And Shower and Lifestyle: Hobbies are optional and detected at runtime. In multiplayer the server needs the mod enabled. Use "Water Physicality - Viewpoint" instead if you play with Project Viewpoint: the two cannot be enabled together.
+description=Water for sinks, bathtubs and showers in the base game's isometric view, painted into the fixtures' own art. No Project Viewpoint or ZombieBuddy needed, and no required mods. Fixtures show water while you drink, wash or fill a container at them. Take A Bath And Shower and Lifestyle: Hobbies are optional and detected at runtime. In multiplayer the server needs the mod enabled. Use "Water Physicality - Viewpoint (3D + isometric)" instead if you play with Project Viewpoint: the two cannot be enabled together.
 poster=poster.png
 icon=icon.png
 author=E.Mi

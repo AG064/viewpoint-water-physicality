@@ -13,7 +13,7 @@ description=[/list]
 description=
 description=[h2]Two versions in this item: enable one[/h2]
 description=[list]
-description=[*] [b]Water Physicality - Viewpoint[/b] (Mod ID [b]WaterPhysicality[/b]): real 3D water and streams with Project Viewpoint, plus the isometric water. Without Viewpoint it simply shows the isometric water. Existing saves keep working with this one.
+description=[*] [b]Water Physicality - Viewpoint (3D + isometric)[/b] (Mod ID [b]WaterPhysicality[/b]): both kinds of water. Real 3D water and streams in Viewpoint's 3D view, and the painted water in the isometric view. Without Viewpoint it shows only the isometric water. Existing saves keep working with this one.
 description=[*] [b]Water Physicality - Flat[/b] (Mod ID [b]WaterPhysicalityFlat[/b]): only the isometric water. Lighter: no 3D models and no Java part.
 description=[*] They cannot be enabled together.
 description=[/list]
@@ -48,5 +48,5 @@ description=[*] Light on performance: one scan per second for fixtures near you,
 description=[/list]
 description=
 description=Source and full changelog: [url=https://github.com/AG064/viewpoint-water-physicality]github.com/AG064/viewpoint-water-physicality[/url]
-tags=Build 42;Realistic;Textures;WIP
+tags=Build 42;Realistic;Textures
 visibility=public

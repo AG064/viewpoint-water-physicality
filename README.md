@@ -21,7 +21,7 @@ Water for sinks, bathtubs and showers in Project Zomboid (Build 42): real 3D wat
 
 | Version | Mod ID | What it does |
 |---|---|---|
-| Water Physicality - Viewpoint | `WaterPhysicality` | Real 3D water and streams with Project Viewpoint, plus the isometric water. Without Viewpoint it simply shows the isometric water. Existing saves keep working with this one. |
+| Water Physicality - Viewpoint (3D + isometric) | `WaterPhysicality` | Both kinds of water: real 3D water and streams in Viewpoint's 3D view, and the painted water in the isometric view. Without Viewpoint it shows only the isometric water. Existing saves keep working with this one. |
 | Water Physicality - Flat | `WaterPhysicalityFlat` | Only the isometric water. Lighter: no 3D models and no Java part. |
 
 Both are in the same Workshop item. They cannot be enabled together.

@@ -5,7 +5,7 @@
 ### Two versions now: enable one
 The Workshop item now holds two versions. They cannot be enabled together.
 
-- **Water Physicality - Viewpoint** (Mod ID `WaterPhysicality`): real 3D water and streams with Project Viewpoint, plus the isometric water. Without Viewpoint it simply shows the isometric water.
+- **Water Physicality - Viewpoint (3D + isometric)** (Mod ID `WaterPhysicality`): both kinds of water. Real 3D water and streams in Viewpoint's 3D view, and the painted water in the isometric view. Without Viewpoint it shows only the isometric water.
 - **Water Physicality - Flat** (Mod ID `WaterPhysicalityFlat`): isometric water only. Lighter: no 3D models and no Java part.
 
 Existing saves keep working with the Viewpoint version, with or without Viewpoint. Servers: use the Mod ID of the version you want.
